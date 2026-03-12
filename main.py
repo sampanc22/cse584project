@@ -7,7 +7,8 @@ from google.adk import Agent
 from google.adk.apps.app import App
 from google.adk.agents.context_cache_config import ContextCacheConfig
 
-
+from dotenv import load_dotenv
+load_dotenv()
 # ----------------------------
 # 1. ADK app with context cache
 # ----------------------------
@@ -18,7 +19,7 @@ root_agent = Agent(
 )
 
 app = App(
-    name="validity-cache-app",
+    name="validity_cache_app",
     root_agent=root_agent,
     context_cache_config=ContextCacheConfig(
         min_tokens=2048,
