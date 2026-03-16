@@ -1,173 +1,155 @@
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
-import json
-import math
+from cache import SimpleSemanticCache
+from validity import dialogue_valid, document_valid
+from signatures import make_dialogue_signature
+from adk_runtime import generate_fresh_with_agent
 
-from google.adk import Agent
-from google.adk.apps.app import App
-from google.adk.agents.context_cache_config import ContextCacheConfig
-
-from dotenv import load_dotenv
-load_dotenv()
-# ----------------------------
-# 1. ADK app with context cache
-# ----------------------------
-root_agent = Agent(
-    name="validity_agent",
-    model="gemini-2.0-flash",
-    instruction="Answer the user's question using the provided context."
-)
-
-app = App(
-    name="validity_cache_app",
-    root_agent=root_agent,
-    context_cache_config=ContextCacheConfig(
-        min_tokens=2048,
-        ttl_seconds=600,
-        cache_intervals=5,
-    ),
-)
-
-
-# ----------------------------
-# 2. Your response cache entry
-# ----------------------------
-@dataclass
-class CacheEntry:
-    prompt: str
-    response: str
-    embedding: List[float]
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-# ----------------------------
-# 3. Tiny local semantic cache
-# ----------------------------
-class SimpleSemanticCache:
-    def __init__(self, similarity_threshold: float = 0.92):
-        self.entries: List[CacheEntry] = []
-        self.similarity_threshold = similarity_threshold
-
-    def _embed(self, text: str) -> List[float]:
-        # starter placeholder: replace with real embeddings later
-        counts = [0.0] * 26
-        for ch in text.lower():
-            if "a" <= ch <= "z":
-                counts[ord(ch) - ord("a")] += 1.0
-        norm = math.sqrt(sum(x * x for x in counts)) or 1.0
-        return [x / norm for x in counts]
-
-    def _cosine(self, a: List[float], b: List[float]) -> float:
-        return sum(x * y for x, y in zip(a, b))
-
-    def lookup(self, prompt: str) -> Optional[CacheEntry]:
-        q = self._embed(prompt)
-        best = None
-        best_sim = -1.0
-        for entry in self.entries:
-            sim = self._cosine(q, entry.embedding)
-            if sim > best_sim:
-                best_sim = sim
-                best = entry
-        if best is not None and best_sim >= self.similarity_threshold:
-            return best
-        return None
-
-    def insert(self, prompt: str, response: str, metadata: Dict[str, Any]) -> None:
-        self.entries.append(
-            CacheEntry(
-                prompt=prompt,
-                response=response,
-                embedding=self._embed(prompt),
-                metadata=metadata,
-            )
-        )
-
-
-# ----------------------------
-# 4. Validity checks
-# ----------------------------
-def dialogue_valid(current_sig: Dict[str, Any], cached_sig: Dict[str, Any]) -> bool:
-    return current_sig == cached_sig
-
-
-def document_valid(current_versions: Dict[str, int], cached_versions: Dict[str, int]) -> bool:
-    for doc_id, cached_ver in cached_versions.items():
-        if current_versions.get(doc_id) != cached_ver:
-            return False
-    return True
-
-
-# ----------------------------
-# 5. Fresh generation through ADK
-# ----------------------------
-def generate_fresh_with_agent(prompt: str, long_context: str) -> str:
-    """
-    Pseudocode shape: send long_context + prompt to your ADK app/session runner.
-    ADK will handle context caching under the hood if the request is large enough.
-    Replace this with your actual ADK invocation code.
-    """
-    full_input = f"Context:\n{long_context}\n\nQuestion:\n{prompt}"
-
-    # Placeholder until you wire in your actual ADK runner:
-    return f"[FRESH GEMINI ANSWER] {full_input[:200]}..."
-
-
-# ----------------------------
-# 6. End-to-end request handler
-# ----------------------------
 response_cache = SimpleSemanticCache(similarity_threshold=0.92)
-
 
 def handle_request(
     prompt: str,
     long_context: str,
-    dialogue_signature: Dict[str, Any],
-    document_versions: Dict[str, int],
+    dialogue_signature: dict,
+    document_versions: dict,
+    mode: str,
+    history: list[str] | None = None,
 ) -> str:
-    candidate = response_cache.lookup(prompt)
+    # Step 1: embed prompt once
+    query_embedding = response_cache.embed_prompt(prompt)
 
+    # Step 2: semantic retrieval only
+    candidate = response_cache.lookup_with_embedding(query_embedding)
+
+    # Step 3: validity filtering
     if candidate is not None:
         cached_dialogue = candidate.metadata.get("dialogue_signature", {})
         cached_versions = candidate.metadata.get("document_versions", {})
 
-        if dialogue_valid(dialogue_signature, cached_dialogue) and document_valid(document_versions, cached_versions):
+        if mode == "document":
+            is_valid = document_valid(document_versions, cached_versions)
+        elif mode == "dialogue":
+            is_valid = dialogue_valid(dialogue_signature, cached_dialogue)
+        else:
+            raise ValueError(f"Unsupported mode: {mode}")
+
+        if is_valid:
             print("RESPONSE CACHE HIT")
             return candidate.response
 
+    # Step 4: recompute if no valid cached response
     print("RESPONSE CACHE MISS OR INVALID -> FRESH GEMINI CALL")
-    fresh_response = generate_fresh_with_agent(prompt, long_context)
+    fresh_response = generate_fresh_with_agent(
+        prompt=prompt,
+        long_context=long_context,
+        history=history,
+        mode=mode,
+    )
 
-    response_cache.insert(
+    # Step 5: store response with the already-computed embedding
+    response_cache.insert_with_embedding(
         prompt=prompt,
         response=fresh_response,
+        embedding=query_embedding,
         metadata={
             "dialogue_signature": dialogue_signature,
             "document_versions": document_versions,
         },
     )
+
     return fresh_response
 
 
-# ----------------------------
-# 7. Example usage
-# ----------------------------
 if __name__ == "__main__":
-    doc_text = "Hotel database snapshot v1: Boston Plaza is downtown and costs $220 per night."
-    prompt = "What hotel in downtown Boston is available?"
-    dialogue_sig = {"domain": "travel", "city": "Boston"}
-    doc_versions = {"hotel_doc": 1}
+    history = [
+        "I need a hotel in Boston.",
+        "Somewhere downtown would be nice.",
+    ]
+    prompt = "What hotel in downtown Boston should I book?"
+    dialogue_sig = make_dialogue_signature(prompt, history)
 
-    r1 = handle_request(prompt, doc_text, dialogue_sig, doc_versions)
-    print(r1)
+    print("===== DOCUMENT MODE TEST =====")
+    doc_text_v1 = "Hotel database snapshot v1: Boston Plaza is downtown and costs $220 per night."
+    doc_versions_v1 = {"hotel_doc": 1}
 
-    # Same state -> response cache hit
-    r2 = handle_request(prompt, doc_text, dialogue_sig, doc_versions)
-    print(r2)
+    r1 = handle_request(
+        prompt=prompt,
+        long_context=doc_text_v1,
+        dialogue_signature=dialogue_sig,
+        document_versions=doc_versions_v1,
+        mode="document",
+        history=history,
+    )
+    print("\nFIRST RESPONSE:\n", r1)
 
-    # Document changed -> response cache invalid, fresh generation again
-    doc_text_v2 = "Hotel database snapshot v2: Boston Plaza is sold out. Harbor Inn costs $210."
+    r2 = handle_request(
+        prompt=prompt,
+        long_context=doc_text_v1,
+        dialogue_signature=dialogue_sig,
+        document_versions=doc_versions_v1,
+        mode="document",
+        history=history,
+    )
+    print("\nSECOND RESPONSE:\n", r2)
+
+    doc_text_v2 = "Hotel database snapshot v2: Boston Plaza is sold out. Harbor Inn is downtown and costs $210."
     doc_versions_v2 = {"hotel_doc": 2}
 
-    r3 = handle_request(prompt, doc_text_v2, dialogue_sig, doc_versions_v2)
-    print(r3)
+    r3 = handle_request(
+        prompt=prompt,
+        long_context=doc_text_v2,
+        dialogue_signature=dialogue_sig,
+        document_versions=doc_versions_v2,
+        mode="document",
+        history=history,
+    )
+    print("\nTHIRD RESPONSE:\n", r3)
+
+    # print("\n===== DIALOGUE MODE TEST =====")
+    # dialogue_history_v1 = [
+    #     "I need a hotel in Boston.",
+    #     "Somewhere downtown would be nice.",
+    # ]
+    # prompt_dialogue = "What hotel should I book?"
+    # dialogue_sig_v1 = make_dialogue_signature(prompt_dialogue, dialogue_history_v1)
+
+    # context_dialogue = "Available hotels: Boston Plaza is downtown and costs $220 per night."
+
+    # r4 = handle_request(
+    #     prompt=prompt_dialogue,
+    #     long_context=context_dialogue,
+    #     dialogue_signature=dialogue_sig_v1,
+    #     document_versions={},
+    #     mode="dialogue",
+    #     history=dialogue_history_v1,
+    # )
+    # print("\nFOURTH RESPONSE:\n", r4)
+
+    # r5 = handle_request(
+    #     prompt=prompt_dialogue,
+    #     long_context=context_dialogue,
+    #     dialogue_signature=dialogue_sig_v1,
+    #     document_versions={},
+    #     mode="dialogue",
+    #     history=dialogue_history_v1,
+    # )
+    # print("\nFIFTH RESPONSE:\n", r5)
+
+    # dialogue_history_v2 = [
+    #     "I need a hotel in Boston.",
+    #     "Actually, make that something cheap instead.",
+    # ]
+    # dialogue_sig_v2 = make_dialogue_signature(prompt_dialogue, dialogue_history_v2)
+
+    # context_dialogue_v2 = (
+    #     "Available hotels: Boston Plaza is downtown and costs $220 per night. "
+    #     "Budget Stay is cheap and costs $90 per night."
+    # )
+
+    # r6 = handle_request(
+    #     prompt=prompt_dialogue,
+    #     long_context=context_dialogue_v2,
+    #     dialogue_signature=dialogue_sig_v2,
+    #     document_versions={},
+    #     mode="dialogue",
+    #     history=dialogue_history_v2,
+    # )
+    # print("\nSIXTH RESPONSE:\n", r6)
