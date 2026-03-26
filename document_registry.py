@@ -15,13 +15,16 @@ class DocumentRegistry:
 
     def get_document_versions(self, title: str, context: str) -> Dict[str, int]:
         """
-        Returns a document_versions dict in the format your cache already expects:
+        Returns a document_versions dict:
             {document_id: version}
 
         Policy:
         - Same title => same logical document_id
         - New context under same title => new version number
         - Previously seen context under same title => existing version number
+
+        Note:
+        This is content-equivalence tracking, not full temporal provenance.
         """
         norm_title = self._normalize_title(title)
         context_hash = self._hash_context(context)

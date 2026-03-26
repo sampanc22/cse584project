@@ -12,14 +12,10 @@ if not _api_key:
 
 client = genai.Client(api_key=_api_key)
 
-# Simple in-memory cache so repeated signature extraction is cheap
 _signature_cache: Dict[Tuple[str, ...], Dict[str, object]] = {}
 
 
 def _normalize_signature(raw: Dict[str, Any]) -> Dict[str, object]:
-    """
-    Normalize model output into a stable signature shape.
-    """
     domains = raw.get("domains", [])
     if not isinstance(domains, list):
         domains = []
@@ -59,34 +55,39 @@ def _normalize_signature(raw: Dict[str, Any]) -> Dict[str, object]:
     }
 
 
-def _extract_signature_with_gemini(user_utterance: str, history: List[str]) -> Dict[str, object]:
+def _extract_signature_with_gemini(
+    user_utterance: str,
+    history: List[str],
+) -> Dict[str, object]:
     recent_history = history[-5:]
-    conversation = "\n".join([f"History: {turn}" for turn in recent_history] + [f"User: {user_utterance}"])
+    conversation = "\n".join(
+        [f"History: {turn}" for turn in recent_history] + [f"User: {user_utterance}"]
+    )
 
     prompt = f"""
-You are extracting structured dialogue state for a task-oriented assistant.
+    You are extracting structured dialogue state for a task-oriented assistant.
 
-Given the recent conversation, return ONLY valid JSON with exactly this schema:
-{{
-  "domains": ["..."],
-  "intents": ["..."],
-  "constraints": {{
-    "slot_name": "slot_value"
-  }},
-  "requested_info": ["..."]
-}}
+    Given the recent conversation, return ONLY valid JSON with exactly this schema:
+    {{
+    "domains": ["..."],
+    "intents": ["..."],
+    "constraints": {{
+        "slot_name": "slot_value"
+    }},
+    "requested_info": ["..."]
+    }}
 
-Rules:
-- "domains" should contain high-level task areas like hotel, restaurant, train, taxi, attraction, flight, shopping, weather, travel.
-- "intents" should capture what the user is trying to do, like search, book, compare, ask_price, ask_location, ask_availability.
-- "constraints" should include explicit user constraints only, such as city, area, price, date, time, destination, departure, stars, food, people, stay, etc.
-- "requested_info" should include information the user is asking for, such as address, phone, wifi, parking, price, availability.
-- Omit unknown fields rather than guessing.
-- Return JSON only. No markdown. No explanation.
+    Rules:
+    - "domains" should contain high-level task areas like hotel, restaurant, train, taxi, attraction, flight, shopping, weather, travel.
+    - "intents" should capture what the user is trying to do, like search, book, compare, ask_price, ask_location, ask_availability.
+    - "constraints" should include explicit user constraints only, such as city, area, price, date, time, destination, departure, stars, food, people, stay, etc.
+    - "requested_info" should include information the user is asking for, such as address, phone, wifi, parking, price, availability.
+    - Omit unknown fields rather than guessing.
+    - Return JSON only. No markdown. No explanation.
 
-Conversation:
-{conversation}
-"""
+    Conversation:
+    {conversation}
+    """
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
@@ -95,14 +96,12 @@ Conversation:
 
     text = response.text.strip()
 
-    # Try direct JSON parse first
     try:
         parsed = json.loads(text)
         return _normalize_signature(parsed)
     except Exception:
         pass
 
-    # Fallback: extract the first JSON object from the text
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
@@ -112,7 +111,6 @@ Conversation:
         except Exception:
             pass
 
-    # Final fallback
     return {
         "domains": [],
         "intents": [],
@@ -122,12 +120,6 @@ Conversation:
 
 
 def make_dialogue_signature(user_utterance: str, history: List[str]) -> Dict[str, object]:
-    """
-    Build a dialogue signature dynamically from recent dialogue.
-
-    The signature is cached locally by the last few turns + current utterance
-    so repeated calls do not repeatedly hit Gemini.
-    """
     cache_key = tuple(history[-5:] + [user_utterance])
 
     if cache_key in _signature_cache:
