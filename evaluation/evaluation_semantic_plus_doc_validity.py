@@ -3,7 +3,7 @@ import random
 import time
 import json
 
-from evaluation_common import (
+from evaluation.evaluation_common import (
     DATASET_PATH,
     MAX_EXAMPLES,
     RANDOM_SEED,
@@ -27,8 +27,6 @@ def run_semantic_plus_doc_validity_batch(
     max_examples: int = 100,
 ) -> None:
     random.seed(RANDOM_SEED)
-
-    max_examples = MAX_EXAMPLES
 
     examples = get_or_create_sampled_examples(
         dataset_path=dataset_path,
@@ -121,4 +119,4 @@ if __name__ == "__main__":
     parser.add_argument("--batch-idx", type=int, required=True)
     args = parser.parse_args()
 
-    run_semantic_plus_doc_validity_batch(batch_idx=args.batch_idx, max_examples=100)
+    run_semantic_plus_doc_validity_batch(batch_idx=args.batch_idx, max_examples=MAX_EXAMPLES)

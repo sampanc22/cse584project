@@ -1,28 +1,21 @@
-import csv
 import json
 import random
 import re
 import time
-import sys
 from pathlib import Path
 from math import ceil
-
-ROOT_DIR = Path(__file__).resolve().parent.parent
-sys.path.append(str(ROOT_DIR))
-
 from dataclasses import dataclass, asdict
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
-from cache import SimpleSemanticCache
-from document_registry import DocumentRegistry
-from adk_runtime import generate_fresh_with_agent
+from core.cache import SimpleSemanticCache
+from core.document_registry import DocumentRegistry
+from core.adk_runtime import generate_fresh_with_agent
 
 # ----------------------------
 # Shared config
 # ----------------------------
 
-DATASET_PATH = str(ROOT_DIR / "evaluation/squad.json")
-SAMPLED_EXAMPLES_PATH = str(ROOT_DIR / "evaluation/sampled_examples.json")
+DATASET_PATH = "evaluation/squad.json"
+SAMPLED_EXAMPLES_PATH = "evaluation/sampled_examples.json"
 RANDOM_SEED = 42
 TOP_K = 5
 SIMILARITY_THRESHOLD = 0.92

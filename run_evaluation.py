@@ -9,7 +9,7 @@ for i in range(NUM_BATCHES):
     print(f"\n===== RUNNING BATCH {i} =====")
 
     result = subprocess.run(
-        ["python", "evaluation/evaluation_no_cache.py", "--batch-idx", str(i)]
+        ["python", "-m", "evaluation.evaluation_no_cache", "--batch-idx", str(i)]
     )
 
     if result.returncode != 0:
@@ -23,7 +23,7 @@ for i in range(NUM_BATCHES):
     print(f"\n===== RUNNING BATCH {i} =====")
 
     result = subprocess.run(
-        ["python", "evaluation/evaluation_semantic_only.py", "--batch-idx", str(i)]
+        ["python", "-m", "evaluation.evaluation_semantic_only", "--batch-idx", str(i)]
     )
 
     if result.returncode != 0:
@@ -37,7 +37,7 @@ for i in range(NUM_BATCHES):
     print(f"\n===== RUNNING BATCH {i} =====")
 
     result = subprocess.run(
-        ["python", "evaluation/evaluation_semantic_plus_doc_validity.py", "--batch-idx", str(i)]
+        ["python", "-m", "evaluation.evaluation_semantic_plus_doc_validity", "--batch-idx", str(i)]
     )
 
     if result.returncode != 0:
@@ -50,11 +50,12 @@ time.sleep(10)
 
 # aggregate results
 print("\n===== MERGING RESULTS =====")
-subprocess.run(["python", "evaluation/aggregate_batch_results.py"], check=True)
+subprocess.run(["python", "-m", "evaluation.aggregate_batch_results"], check=True)
 
 time.sleep(5)
 
 # clean up
 print("\n===== DONE =====")
 print("\nCleaning up individual batch summaries")
-shutil.rmtree("tmp")
+if shutil.os.path.exists("tmp"):
+    shutil.rmtree("tmp")

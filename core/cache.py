@@ -10,7 +10,6 @@ from google import genai
 
 load_dotenv()
 
-
 @dataclass
 class CacheEntry:
     prompt: str

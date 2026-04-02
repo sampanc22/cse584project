@@ -1,1 +1,13 @@
-How to install:
+These are the steps to compile the source code and set up the environment.
+
+1. Install latest version of Python if not already installed. Reference this link (https://www.python.org/downloads/) to download the appropriate version.
+2. Create a Python virtual environment using this command: 
+    For Windows: python -m .venv 
+    For Mac/Linux: python3 -m .venv
+3. Activate the Python virtual environment using this command:
+    For Windows: .venv\Scripts\activate or .venv\Scripts\Activate.ps1
+    For Mac/Linux: source .venv/bin/activate
+4. Install package dependencies uing this command: pip install -r requirements.txt
+5. Obtain a Gemini API Key by referencing this link (https://aistudio.google.com/app/api-keys) and clicking 'Create API Key'. Copy this API Key by clicking the 'Copy API Key' button.
+6. Create a .env file (a file with the name .env) in the project's root directory. This file will contain secrets such as the Gemini API Key.
+7. Paste your Gemini API Key into the .env file following this format: GOOGLE_API_KEY=[YOUR_API_KEY]

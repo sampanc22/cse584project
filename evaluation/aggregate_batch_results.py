@@ -1,37 +1,23 @@
 import json
 from pathlib import Path
+from evaluation.evaluation_common import NUM_BATCHES
+
+def make_batch_files(prefix: str) -> list[str]:
+    return [f"tmp/{prefix}_batch_{i}.json" for i in range(NUM_BATCHES)]
 
 EXPERIMENTS = {
     "no_cache": {
-        "input_files": [
-            "tmp/no_cache_batch_0.json",
-            "tmp/no_cache_batch_1.json",
-            "tmp/no_cache_batch_2.json",
-            "tmp/no_cache_batch_3.json",
-            "tmp/no_cache_batch_4.json",
-        ],
+        "input_files": make_batch_files("no_cache"),
         "output_file": "results/no_cache_summary.json",
         "display_name": "NO CACHE (MERGED)",
     },
     "semantic_only": {
-        "input_files": [
-            "tmp/semantic_only_batch_0.json",
-            "tmp/semantic_only_batch_1.json",
-            "tmp/semantic_only_batch_2.json",
-            "tmp/semantic_only_batch_3.json",
-            "tmp/semantic_only_batch_4.json",
-        ],
+        "input_files": make_batch_files("semantic_only"),
         "output_file": "results/semantic_only_summary.json",
         "display_name": "SEMANTIC ONLY (MERGED)",
     },
     "semantic_plus_doc_validity": {
-        "input_files": [
-            "tmp/semantic_plus_doc_validity_batch_0.json",
-            "tmp/semantic_plus_doc_validity_batch_1.json",
-            "tmp/semantic_plus_doc_validity_batch_2.json",
-            "tmp/semantic_plus_doc_validity_batch_3.json",
-            "tmp/semantic_plus_doc_validity_batch_4.json",
-        ],
+        "input_files": make_batch_files("semantic_plus_doc_validity"),
         "output_file": "results/semantic_plus_doc_validity_summary.json",
         "display_name": "SEMANTIC + DOC VALIDITY (MERGED)",
     },
