@@ -1,48 +1,55 @@
-from evaluation_common import (
-    MAX_EXAMPLES,
-    DATASET_PATH,
-    RANDOM_SEED,
-    REQUEST_SLEEP_SECONDS,
-    EvalRunner,
-    build_cache_stream,
-    exact_match,
-    fresh_metrics,
-    init_csv_log,
-    is_model_failure,
-    get_or_create_sampled_examples,
-    log_result,
-    sleep_between_requests,
-    summarize,
-    update_metrics,
-    write_summary_json,
-)
+import json
 import random
+import time
+import argparse
 
-CSV_LOG_PATH = "semantic_only_results.csv"
-SUMMARY_JSON_PATH = "semantic_only_summary.json"
+from evaluation_common import (
+    DATASET_PATH,
+    MAX_EXAMPLES,
+    RANDOM_SEED,
+    BATCH_SIZE,
+    NUM_ANSWER_CHANGING_VARIANTS,
+    INCLUDE_IRRELEVANT_EDIT,
+    EvalRunner,
+    answer_matches,
+    build_cache_stream,
+    fresh_metrics,
+    get_or_create_sampled_examples,
+    get_batch,
+    is_model_failure,
+    sleep_between_requests,
+    update_metrics,
+)
 
-NUM_ANSWER_CHANGING_VARIANTS = 2
-INCLUDE_IRRELEVANT_EDIT = True
-
-
-def run_semantic_only(
+def run_semantic_only_batch(
+    batch_idx: int,
     dataset_path: str = DATASET_PATH,
-    max_examples: int = MAX_EXAMPLES,
+    max_examples: int = 100,
 ) -> None:
     random.seed(RANDOM_SEED)
 
-    print(f"Loading dataset from: {dataset_path}")
-    examples = get_or_create_sampled_examples(dataset_path=dataset_path, max_examples=max_examples)
-    print(f"Loaded {len(examples)} QA examples for semantic-only evaluation")
+    max_examples = MAX_EXAMPLES
+
+    examples = get_or_create_sampled_examples(
+        dataset_path=dataset_path,
+        max_examples=max_examples,
+    )
+
+    batch_examples = get_batch(
+        examples=examples,
+        batch_idx=batch_idx,
+        batch_size=BATCH_SIZE,
+    )
+
+    print(f"Loaded {len(examples)} total sampled examples")
+    print(f"Running batch {batch_idx} with {len(batch_examples)} examples")
 
     stream = build_cache_stream(
-        examples,
+        batch_examples,
         num_answer_changing_variants=NUM_ANSWER_CHANGING_VARIANTS,
         include_irrelevant_edit=INCLUDE_IRRELEVANT_EDIT,
     )
-    print(f"Built semantic-only stream of {len(stream)} requests")
-
-    init_csv_log(CSV_LOG_PATH)
+    print(f"Built stream of {len(stream)} requests")
 
     runner = EvalRunner()
     metrics = fresh_metrics()
@@ -51,74 +58,67 @@ def run_semantic_only(
         question = req["question"]
         context = req["context"]
         doc_title = req["doc_title"]
-        qa_id = req["qa_id"]
         gold_answers = req["gold_answers"]
         update_type = req["update_type"]
-        changed_answer = req["changed_answer"]
         tag = req["tag"]
+        original_answer = req.get("original_answer", "")
+        new_answer = req.get("new_answer", "")
+        edit_description = req.get("edit_description", "")
 
-        print(f"\n[SEMANTIC ONLY {i}/{len(stream)}] {tag} | update={update_type}")
+        print(f"\n[SEMANTIC ONLY BATCH {batch_idx} {i}/{len(stream)}] {tag} | update={update_type}")
         print(f"Q: {question}")
+        if update_type != "none":
+            print(f"EDIT: {edit_description}")
+        if update_type == "answer_changing_edit":
+            print(f"ORIGINAL ANSWER: {original_answer}")
+            print(f"NEW ANSWER: {new_answer}")
 
+        start = time.perf_counter()
         pred, hit = runner.answer_semantic_only(
             question,
             context,
             doc_title,
         )
+        latency_ms = (time.perf_counter() - start) * 1000.0
+
         failed = is_model_failure(pred)
-        correct = (not failed) and exact_match(pred, gold_answers)
+        correct = (not failed) and answer_matches(pred, gold_answers)
 
         update_metrics(
             metrics,
             correct=correct,
             cache_hit=hit,
-            stale_avoided=False,
-            changed_answer=changed_answer,
             update_type=update_type,
+            latency_ms=latency_ms,
             model_failed=failed,
         )
 
-        log_result(
-            CSV_LOG_PATH,
-            request_index=i,
-            tag=tag,
-            baseline="semantic_only",
-            qa_id=qa_id,
-            doc_title=doc_title,
-            question=question,
-            gold_answers=gold_answers,
-            prediction=pred,
-            correct=correct,
-            cache_hit=hit,
-            stale_avoided=False,
-            update_type=update_type,
-            changed_answer=changed_answer,
-            context=context,
-            model_failed=failed,
+        print(
+            f"  semantic only -> {pred!r} | "
+            f"hit={hit} | failed={failed} | correct={correct}"
         )
 
-        print(f"  semantic_only -> {pred!r} | hit={hit} | failed={failed} | correct={correct}")
         sleep_between_requests()
 
-    summary_payload = {
+    output_json_path = f"tmp/semantic_only_batch_{batch_idx}.json"
+
+    payload = {
         "config": {
-            "dataset_path": dataset_path,
-            "random_seed": RANDOM_SEED,
-            "max_examples": max_examples,
-            "request_sleep_seconds": REQUEST_SLEEP_SECONDS,
-            "num_answer_changing_variants": NUM_ANSWER_CHANGING_VARIANTS,
-            "include_irrelevant_edit": INCLUDE_IRRELEVANT_EDIT,
+            "batch_idx": batch_idx,
+            "batch_size": BATCH_SIZE,
         },
-        "results": {
-            "semantic_only": summarize("SEMANTIC ONLY", metrics),
-        },
+        "metrics": metrics,
     }
 
-    write_summary_json(SUMMARY_JSON_PATH, summary_payload)
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
 
-    print(f"\nWrote semantic-only per-request log to {CSV_LOG_PATH}")
-    print(f"Wrote semantic-only summary to {SUMMARY_JSON_PATH}")
+    print(f"\nWrote batch JSON to {output_json_path}")
 
 
 if __name__ == "__main__":
-    run_semantic_only()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch-idx", type=int, required=True)
+    args = parser.parse_args()
+
+    run_semantic_only_batch(batch_idx=args.batch_idx, max_examples=100)

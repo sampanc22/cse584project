@@ -57,9 +57,9 @@ def _build_model_input(
             "Answer the question using only the provided document text.\n"
             "Do not use prior knowledge, world knowledge, or outside assumptions.\n"
             "Do not infer facts not explicitly supported by the document.\n"
-            "If the answer is not explicitly stated in the document, return exactly: None\n"
             "Return only the shortest direct answer.\n"
-            "Do not explain or restate the question."
+            "Do not explain or restate the question.\n"
+            "If the answer is not explicitly stated in the document, return exactly: None"
         )
 
         return "\n\n".join(

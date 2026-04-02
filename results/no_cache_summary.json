@@ -1,0 +1,62 @@
+{
+  "input_files": [
+    "tmp/no_cache_batch_0.json",
+    "tmp/no_cache_batch_1.json",
+    "tmp/no_cache_batch_2.json",
+    "tmp/no_cache_batch_3.json",
+    "tmp/no_cache_batch_4.json"
+  ],
+  "summary": {
+    "overall": {
+      "total": 600,
+      "accuracy": 0.8566666666666667,
+      "hits": 0,
+      "misses": 600,
+      "hit_rate": 0.0,
+      "true_hits": 0,
+      "false_hits": 0,
+      "false_hit_rate_overall": 0.0,
+      "avg_latency_ms": 1485.2988234470347,
+      "model_failures": 0,
+      "update_counts": {
+        "none": 200,
+        "irrelevant_edit": 200,
+        "answer_changing_edit": 200
+      }
+    },
+    "answer_changing_edit": {
+      "total": 200,
+      "accuracy": 0.64,
+      "hits": 0,
+      "misses": 200,
+      "hit_rate": 0.0,
+      "true_hits": 0,
+      "false_hits": 0,
+      "false_hit_rate_overall": 0.0,
+      "avg_latency_ms": 1816.3835797813954,
+      "model_failures": 0,
+      "update_counts": {
+        "none": 0,
+        "irrelevant_edit": 0,
+        "answer_changing_edit": 200
+      }
+    },
+    "non_answer_changing_edit": {
+      "total": 400,
+      "accuracy": 0.965,
+      "hits": 0,
+      "misses": 400,
+      "hit_rate": 0.0,
+      "true_hits": 0,
+      "false_hits": 0,
+      "false_hit_rate_overall": 0.0,
+      "avg_latency_ms": 1319.7564452798542,
+      "model_failures": 0,
+      "update_counts": {
+        "none": 200,
+        "irrelevant_edit": 200,
+        "answer_changing_edit": 0
+      }
+    }
+  }
+}
