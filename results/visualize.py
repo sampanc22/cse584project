@@ -37,6 +37,7 @@ def load_all_metrics(files):
                 "method": method,
                 "category": category,
                 "accuracy": stats["accuracy"],
+                "hit_rate": stats["hit_rate"],
                 "false_hit_rate": stats["false_hit_rate_overall"],
                 "latency_ms": stats["avg_latency_ms"],
                 "true_hits": stats["true_hits"],
@@ -149,22 +150,27 @@ def main():
     plot_grouped(df, "accuracy",
                  "Accuracy by Method and Edit Type",
                  "Accuracy",
-                 "accuracy_detailed.png")
+                 "accuracy.png")
 
     plot_grouped(df, "false_hit_rate",
                  "False Hit Rate by Method and Edit Type",
                  "False Hit Rate",
-                 "false_hit_rate_detailed.png")
+                 "false_hit_rate.png")
+    
+    plot_grouped(df, "hit_rate",
+             "Hit Rate by Method and Edit Type",
+             "Hit Rate",
+             "hit_rate.png")
 
     plot_grouped(df, "latency_ms",
                  "Latency by Method and Edit Type",
                  "Milliseconds",
-                 "latency_detailed.png")
+                 "latency.png")
 
     plot_grouped(df, "precision",
                  "Precision by Method and Edit Type",
                  "Precision",
-                 "precision_detailed.png")
+                 "precision.png")
 
     plot_tradeoff(df)
 
