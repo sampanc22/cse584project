@@ -16,7 +16,7 @@ CATEGORIES = [
     "non_answer_changing_edit"
 ]
 
-OUTPUT_DIR = "plots"
+OUTPUT_DIR = "plots_docs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
