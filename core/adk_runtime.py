@@ -76,13 +76,25 @@ def _build_model_input(
     if mode == "dialogue":
         history_text = "\n".join(history or [])
         instruction = (
-            "You are a dialogue assistant.\n"
-            "Answer the question using only the provided dialogue history and context.\n"
+            "You are a dialogue-state extraction assistant.\n"
+            "Use only the provided dialogue history and optional context.\n"
             "Do not use outside knowledge or assumptions.\n"
-            "Respect the user's constraints and preferences from the dialogue.\n"
-            "If the answer cannot be determined from the dialogue and context, return exactly: None\n"
-            "Return only the answer.\n"
-            "Do not explain."
+            "Return the user's CURRENT dialogue state as JSON with exactly this schema:\n"
+            '{'
+            '"domains": ["..."], '
+            '"intents": ["..."], '
+            '"constraints": {"slot_name": "slot_value"}, '
+            '"requested_info": ["..."]'
+            '}\n'
+            "Rules:\n"
+            "- domains must be service/task domains, such as train, restaurant, hotel, taxi, attraction.\n"
+            "- intents should reflect the current active task expressed in the dialogue.\n"
+            "- constraints should include currently active slot constraints supported by the dialogue.\n"
+            "- requested_info should include specific requested pieces of information.\n"
+            "- Return valid JSON only.\n"
+            "- No markdown, no explanation, no extra text.\n"
+            "- If nothing can be determined, return exactly this JSON:\n"
+            '{"domains": [], "intents": [], "constraints": {}, "requested_info": []}'
         )
 
         return "\n\n".join(
@@ -94,8 +106,6 @@ def _build_model_input(
                 "Answer:",
             ]
         )
-
-    raise ValueError(f"Unsupported mode: {mode}")
 
 
 async def generate_fresh_with_agent_async(
@@ -156,8 +166,8 @@ def generate_fresh_with_agent(
     long_context: str,
     history: list[str] | None = None,
     mode: str = "document",
-    max_retries: int = 3,
-    retry_delay: float = 2.0,
+    max_retries: int = 5,
+    retry_delay: float = 3.0,
 ) -> str:
     last_err: Exception | None = None
 
@@ -176,8 +186,23 @@ def generate_fresh_with_agent(
             last_err = e
             msg = f"{type(e).__name__}: {e}"
 
-            if ("503" in msg or "UNAVAILABLE" in msg) and attempt < max_retries - 1:
-                time.sleep(retry_delay * (2 ** attempt))
+            is_retryable = (
+                "503" in msg
+                or "UNAVAILABLE" in msg
+                or "timeout" in msg.lower()
+                or "timed out" in msg.lower()
+                or "ConnectTimeout" in msg
+                or "429" in msg
+                or "RESOURCE_EXHAUSTED" in msg
+            )
+
+            if is_retryable and attempt < max_retries - 1:
+                sleep_time = retry_delay * (2 ** attempt)
+                print(
+                    f"[FRESH RETRY] attempt={attempt + 1}/{max_retries} "
+                    f"sleeping {sleep_time:.1f}s after error: {msg}"
+                )
+                time.sleep(sleep_time)
                 continue
 
             return f"GEMINI_CALL_FAILED: {msg}"

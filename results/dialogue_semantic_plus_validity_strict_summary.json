@@ -1,0 +1,64 @@
+{
+  "kind": "dialogue",
+  "input_files": [
+    "tmp/dialogue_semantic_plus_validity_strict_batch_0.json",
+    "tmp/dialogue_semantic_plus_validity_strict_batch_1.json",
+    "tmp/dialogue_semantic_plus_validity_strict_batch_2.json"
+  ],
+  "summary": {
+    "overall": {
+      "total": 483,
+      "accuracy": 0.2898550724637681,
+      "hits": 27,
+      "misses": 456,
+      "hit_rate": 0.055900621118012424,
+      "true_hits": 27,
+      "false_hits": 0,
+      "false_hit_rate_overall": 0.0,
+      "avg_latency_ms": 2427.1863914272863,
+      "model_failures": 0,
+      "transition_counts": {
+        "none": 348,
+        "domain_shift": 26,
+        "intent_shift": 23,
+        "constraint_shift": 86
+      }
+    },
+    "state_preserving": {
+      "total": 348,
+      "accuracy": 0.3132183908045977,
+      "hits": 27,
+      "misses": 321,
+      "hit_rate": 0.07758620689655173,
+      "true_hits": 27,
+      "false_hits": 0,
+      "false_hit_rate_overall": 0.0,
+      "avg_latency_ms": 2303.298953963004,
+      "model_failures": 0,
+      "transition_counts": {
+        "none": 348,
+        "domain_shift": 0,
+        "intent_shift": 0,
+        "constraint_shift": 0
+      }
+    },
+    "state_changing": {
+      "total": 135,
+      "accuracy": 0.22962962962962963,
+      "hits": 0,
+      "misses": 135,
+      "hit_rate": 0.0,
+      "true_hits": 0,
+      "false_hits": 0,
+      "false_hit_rate_overall": 0.0,
+      "avg_latency_ms": 2746.540674668547,
+      "model_failures": 0,
+      "transition_counts": {
+        "none": 0,
+        "domain_shift": 26,
+        "intent_shift": 23,
+        "constraint_shift": 86
+      }
+    }
+  }
+}

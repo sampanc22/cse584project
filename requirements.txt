@@ -1,3 +1,5 @@
 google-adk
 google-genai
 python-dotenv
+pandas
+matplotlib
