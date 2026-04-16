@@ -133,6 +133,8 @@ subprocess.run(["python", "-m", "evaluation.aggregate_batch_results"], check=Tru
 
 time.sleep(5)
 
+subprocess.run(["python", "results/visualize.py"])
+
 # clean up
 print("\n===== DONE =====")
 print("\nCleaning up individual batch summaries")
