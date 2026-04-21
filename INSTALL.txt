@@ -20,7 +20,7 @@ These are the steps to run the evaluation pipeline from the root project directo
         Click Download -> Download dataset as ZIP -> Extract ZIP file -> Copy/paste contents of dev/dialogues_001.json into data.json OR simply insert the dev/dialogues_001.json file into the evaluation/dialogue/ directory and rename the inserted file to data.json
 
 2. To run the entire evaluation pipeline (Note: this may take a couple of hours and running the full pipeline may incur API costs due to Gemini usage)
-    For Windows: python run_evaluation.py (ensure system sleep is disabled while running by)
+    For Windows: python run_evaluation.py (ensure system sleep is disabled while running)
     For Mac/Linux: caffeinate -i python run_evaluation.py
 
     If you would like to run certain aspects of the evaluation pipeline, you can navigate to run_evaluation.py and comment/uncomment out the specific scripts you would like to target.
