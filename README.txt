@@ -7,16 +7,21 @@ Validity-Aware Prompt/Response Caching for Large Language Models
 
     Once the environment is set up, the evaluation scripts can be executed directly from the command line.
 
-    For document-based evaluation using the SQuAD dataset, run:
-    python -m evaluation.document.evaluation_no_cache
-    python -m evaluation.document.evaluation_semantic_only
-    python -m evaluation.document.evaluation_semantic_plus_doc_validity
+    For document-based evaluation using the SQuAD dataset, the following commands evaluate each caching strategy: 
+    | Strategy                              | Command                                                                 |
+    |---------------------------------------|-------------------------------------------------------------------------|
+    | No cache baseline                     | python -m evaluation.document.evaluation_no_cache                       |
+    | Semantic-only caching                 | python -m evaluation.document.evaluation_semantic_only                  |
+    | Semantic + document validity caching  | python -m evaluation.document.evaluation_semantic_plus_doc_validity     |
 
-    For dialogue-based evaluation using the MultiWOZ dataset, run:
-    python -m evaluation.dialogue.evaluation_semantic_only
-    python -m evaluation.dialogue.evaluation_semantic_plus_strict_dialogue_validity
-    python -m evaluation.dialogue.evaluation_semantic_plus_slot_relaxed_dialogue_validity
-    python -m evaluation.dialogue.evaluation_semantic_plus_intent_domain_dialogue_validity
+    For dialogue-based evaluation using the MultiWOZ dataset, the following commands evaluate each caching strategy:
+    | Strategy                                   | Command                                                                                        |
+    |--------------------------------------------|------------------------------------------------------------------------------------------------|
+    | No cache baseline                          | python -m evaluation.dialogue.evaluation_no_cache                                              |
+    | Semantic-only caching                      | python -m evaluation.dialogue.evaluation_semantic_only                                         |
+    | Semantic + strict dialogue validity        | python -m evaluation.dialogue.evaluation_semantic_plus_strict_dialogue_validity                |
+    | Semantic + slot-relaxed dialogue validity  | python -m evaluation.dialogue.evaluation_semantic_plus_slot_relaxed_dialogue_validity          |
+    | Semantic + intent-domain dialogue validity | python -m evaluation.dialogue.evaluation_semantic_plus_intent_domain_dialogue_validity         |
 
     All individual evaluation scripts require a --batch-idx argument. 
     Examples of individual run w/ batch index parameter:
