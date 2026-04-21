@@ -2,12 +2,27 @@ These are the steps to compile the source code and set up the environment.
 
 1. Install latest version of Python if not already installed. Reference this link (https://www.python.org/downloads/) to download the appropriate version.
 2. Create a Python virtual environment using this command: 
-    For Windows: python -m .venv 
-    For Mac/Linux: python3 -m .venv
+    For Windows: python -m venv .venv 
+    For Mac/Linux: python3 -m venv .venv
 3. Activate the Python virtual environment using this command:
     For Windows: .venv\Scripts\activate or .venv\Scripts\Activate.ps1
     For Mac/Linux: source .venv/bin/activate
-4. Install package dependencies uing this command: pip install -r requirements.txt
+4. Install package dependencies using this command: pip install -r requirements.txt
 5. Obtain a Gemini API Key by referencing this link (https://aistudio.google.com/app/api-keys) and clicking 'Create API Key'. Copy this API Key by clicking the 'Copy API Key' button.
 6. Create a .env file (a file with the name .env) in the project's root directory. This file will contain secrets such as the Gemini API Key.
 7. Paste your Gemini API Key into the .env file following this format: GOOGLE_API_KEY=[YOUR_API_KEY]
+
+These are the steps to run the evaluation pipeline from the root project directory (given the environment has already been set up successfully):
+1. Download the 2 datasets from Kaggle:
+    a.  SQuAD Dataset for document workload: https://www.kaggle.com/datasets/stanfordu/stanford-question-answering-dataset/data
+        Click Download -> Download dataset as ZIP -> Extract ZIP file -> Copy/paste contents of dev-[version].json into squad.json OR simply insert the dev-[version].json file into the evaluation/document/ directory and rename the inserted file to squad.json
+    b.  MultiWOZ Dataset for dialogue workload: https://www.kaggle.com/datasets/taejinwoo/multiwoz-22/data 
+        Click Download -> Download dataset as ZIP -> Extract ZIP file -> Copy/paste contents of dev/dialogues_001.json into data.json OR simply insert the dev/dialogues_001.json file into the evaluation/dialogue/ directory and rename the inserted file to data.json
+
+2. To run the entire evaluation pipeline (Note: this may take a couple of hours and running the full pipeline may incur API costs due to Gemini usage)
+    For Windows: python run_evaluation.py (ensure system sleep is disabled while running by)
+    For Mac/Linux: caffeinate -i python run_evaluation.py
+
+    If you would like to run certain aspects of the evaluation pipeline, you can navigate to run_evaluation.py and comment/uncomment out the specific scripts you would like to target.
+    Or you can just run the target files directly without using run_evaluation.py at all. 
+    Refer to the ReadME on which files to target and how to run them.
